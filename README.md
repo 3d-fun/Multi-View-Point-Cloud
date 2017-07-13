@@ -37,6 +37,8 @@ class PointCloud
 
 ## Example
 
+Using the Middlebury Computer Vision Datasets : http://vision.middlebury.edu/mview/data/
+
 ```
 #include <opencv2\opencv.hpp>
 #include "PointCloud.h"
