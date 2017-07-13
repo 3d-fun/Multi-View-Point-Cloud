@@ -481,7 +481,7 @@ float gs::localBasis(float* position, cv::Mat* pointCloud, cv::flann::Index* tre
 	return (eigenValues.at<float>(0, 0) / eigenValues.at<float>(2, 0));
 }
 
-void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalDepthRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud)
+void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud)
 {
 	int numImages = images.size();
 
@@ -517,7 +517,7 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalD
 
 		//compute the depth search range
 		double depthRange[2];
-		getLocalDepthRange(si->cameraMatrix, globalDepthRange, depthRange);
+		getLocalDepthRange(si->cameraMatrix, globalRange, depthRange);
 		double screenDepthEnd = depthRange[1];
 		double screenDepthStart = depthRange[0];
 		double screenDepthStep = (screenDepthEnd - screenDepthStart) / (double)rayMarchIterations;

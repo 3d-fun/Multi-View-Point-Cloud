@@ -124,7 +124,7 @@ namespace gs
 	@param float[6] globalDepthRange: range in which the points are searched
 	@param int rayMarchIterations: number of 
 	*/
-	void computePointCloud(std::vector<gs::StereoImage*>& images, float* globalDepthRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud);	
+	void computePointCloud(std::vector<gs::StereoImage*>& images, float* globalRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud);	
 	
 	/*
 	float normalizedCroddCorrelation
