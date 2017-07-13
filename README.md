@@ -11,11 +11,11 @@ We use normalized cross correlation as our Photo-consistency measure. Points are
 gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud)
 ```
 #### Parameters
-+ **std::vector<gs::StereoImage*>& images**: *vector of stereo images*
-+ **float* globalRange**: *Global range of the object. {minX, minY, minZ, maxX, maxY, maxZ}*
++ std::vector<gs::StereoImage*>& images**: *vector of stereo images*
++ **float[] globalRange**: *Global range of the object. {minX, minY, minZ, maxX, maxY, maxZ}*
 + **int rayMarchIterations**: *number of ray marching iterations*
 + **float nccThresh**: *normalized cross correlation threshold*
-+ **std::vector<PointCloud*>& pointCloud**: *output point cloud.*
++ std::vector<PointCloud*>& pointCloud: *output point cloud.*
 
 ## Classes
 
@@ -25,7 +25,7 @@ class StereoImage
 	cv::Mat image;
 	cv::Mat cameraMatrix;
 	cv::Mat cameraMatrixInv;
-}
+};
 
 class PointCloud
 {
@@ -153,7 +153,7 @@ int main()
 	float range[] = { -0.061897, -0.018874, -0.057845, 0.010897, 0.068227, 0.015495 };
 	const int rayMarchingSteps = 250;
 	const float nccThres = 0.94;
-	
+
 	std::vector<gs::PointCloud*> pointCloud;
 	gs::computePointCloud(si, range, rayMarchingSteps, nccThres, pointCloud);
 	gs::exportPointCloud(pointCloud, "../exports/pointCloud.bin");
