@@ -1,5 +1,7 @@
 # Stereoscopic-Point-Cloud
 
+GPU and CPU implementation of Computing a point cloud from Stereoscopic images.
+
 ## Description
 Takes a set of stereo images and camera matricies and produces a 3D point cloud of the model.
 A reference image is compared with a subset of nearby images. We perform ray marching and record depth values with similar pixel values between images.
@@ -9,6 +11,12 @@ Based on the work presented in [1].
 
 ## API
 
+### GPU implementation
+```
+gs::PointCloudKernel::PointCloudKernel(ClContext* context, std::vector<gs::StereoImage*> &stereoImages, float* searchRange, int rayMarchingIters, float nccThresh, std::vector<gs::PointCloud*> &pointCloud);
+```
+
+### CPU implementation
 ```
 gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalRange, int rayMarchIterations, float nccThresh, std::vector<PointCloud*>& pointCloud)
 ```
