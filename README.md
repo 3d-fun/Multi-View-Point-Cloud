@@ -52,6 +52,7 @@ Using the Middlebury Computer Vision Datasets : http://vision.middlebury.edu/mvi
 ```
 #include <opencv2\opencv.hpp>
 #include "PointCloud.h"
+#include "PointCloudKernel.h"
 
 const char* DINOSAUR_IMAGE_0 = "../images/dino/dinoSR0001.png";
 const char* DINOSAUR_IMAGE_1 = "../images/dino/dinoSR0002.png";
@@ -167,8 +168,15 @@ int main()
 	const float nccThres = 0.94;
 
 	std::vector<gs::PointCloud*> pointCloud;
+	// CPU
 	gs::computePointCloud(si, range, rayMarchingSteps, nccThres, pointCloud);
+	
+	//GPU
+	ClContext* clContext = new ClContext();
+	gs::PointCloudKernel* pointCloudKerenl = new gs::PointCloudKernel(clContext, si, range, rayMarchingSteps, nccThres, pointCloud);
+
 	gs::exportPointCloud(pointCloud, "../exports/pointCloud.bin");
+
 
 	pointCloud.clear();
 	si.clear();
