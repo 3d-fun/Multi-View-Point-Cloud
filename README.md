@@ -173,11 +173,13 @@ int main()
 	
 	//GPU
 	ClContext* clContext = new ClContext();
-	gs::PointCloudKernel* pointCloudKerenl = new gs::PointCloudKernel(clContext, si, range, rayMarchingSteps, nccThres, pointCloud);
+	gs::PointCloudKernel* pointCloudKernel = new gs::PointCloudKernel(clContext, si, range, rayMarchingSteps, nccThres, pointCloud);
 
 	gs::exportPointCloud(pointCloud, "../exports/pointCloud.bin");
 
 
+	delete pointCloudKernel;
+	delete clContext;
 	pointCloud.clear();
 	si.clear();
 	return 1;
