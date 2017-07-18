@@ -20,7 +20,7 @@ Hyperparameters:
 #include <opencv2\opencv.hpp>
 #include <fstream>
 
-#define SAMPLE_WINDOW_SIZE 5
+#define SAMPLE_WINDOW_SIZE 3
 #define LOCAL_CAMERA_SIZE 4
 #define MIN_CONDITION_NUMBER 5.0
 
@@ -189,6 +189,8 @@ namespace gs
 	*/
 	float localBasis(float* position, cv::Mat* pointCloud, cv::flann::Index* tree, float* basisX, float* basisY, float* basisZ, int numSamples, float* modelCenter);
 	
+	void computePointCloudNormals(std::vector<PointCloud*> &pointCloud);
+
 	void normalize(float* a);
 	void crossProduct(float* a, float* b, float* result);
 	float dotProduct(float* a, float* b);

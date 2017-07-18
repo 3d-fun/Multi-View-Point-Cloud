@@ -522,9 +522,9 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 		double screenDepthStart = depthRange[0];
 		double screenDepthStep = (screenDepthEnd - screenDepthStart) / (double)rayMarchIterations;
 
-		for (int x = 0; x < imageWidth; x = x + 1)
+		for (int y = 0; y < imageHeight; y++)
 		{
-			for (int y = 0; y < imageHeight; y = y + 1)
+			for (int x = 0; x < imageWidth; x++)
 			{
 				// sample the reference image
 				si->sampleImage(y, x, M, windowSample_i);
@@ -672,7 +672,7 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 		Vertex* v = vertexList[i];
 		Vertex* c = colorList[i];
 		float conditionNumber = localBasis(v->pos, &cloud, tree, basisX, basisY, basisZ, 40, modelCenter);
-		if (conditionNumber > 5.0)
+		if (conditionNumber > MIN_CONDITION_NUMBER)
 		{
 			PointCloud* pc = new PointCloud(v->pos, basisY, c->pos);
 			pointCloud.push_back(pc);
@@ -690,6 +690,44 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 	globalCoord.release();
 	delete[] validDepths;
 	delete[] depthCorr;
+}
+
+void gs::computePointCloudNormals(std::vector<PointCloud*> &pointCloud)
+{
+	cv::Mat cloud(pointCloud.size(), 3, CV_32F);
+	for (int i = 0; i < pointCloud.size(); i++)
+	{
+		cloud.at<float>(i, 0) = pointCloud[i]->position[0];
+		cloud.at<float>(i, 1) = pointCloud[i]->position[1];
+		cloud.at<float>(i, 2) = pointCloud[i]->position[2];
+	}
+	cv::flann::Index* tree = new cv::flann::Index(cloud, cv::flann::KDTreeIndexParams(), cvflann::FLANN_DIST_EUCLIDEAN);
+
+	float boundsMin[3];
+	float boundsMax[3];
+	computeBounds(cloud, boundsMin, boundsMax);
+	float modelCenter[3];
+	modelCenter[0] = (boundsMin[0] + boundsMax[0])*0.5;
+	modelCenter[1] = (boundsMin[1] + boundsMax[1])*0.5;
+	modelCenter[2] = (boundsMin[2] + boundsMax[2])*0.5;
+
+	float basisX[3];
+	float basisY[3];
+	float basisZ[3];
+	for (int i = 0; i < pointCloud.size(); i++)
+	{
+		float conditionNumber = localBasis(pointCloud[i]->position, &cloud, tree, basisX, basisY, basisZ, 50, modelCenter);
+		if (conditionNumber >= MIN_CONDITION_NUMBER)
+		{
+			pointCloud[i]->normal[0] = basisY[0];
+			pointCloud[i]->normal[1] = basisY[1];
+			pointCloud[i]->normal[2] = basisY[2];
+		}
+		else
+		{
+			pointCloud.erase(pointCloud.begin() + i);
+		}
+	}
 }
 
 void gs::exportPointCloud(std::vector<PointCloud*>& pointCloud, const char* filePath)
