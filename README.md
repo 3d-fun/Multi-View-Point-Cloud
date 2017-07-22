@@ -165,7 +165,7 @@ int main()
 
 	float range[] = { -0.061897, -0.018874, -0.057845, 0.010897, 0.068227, 0.015495 };
 	const int rayMarchingSteps = 250;
-	const float nccThres = 0.94;
+	const float nccThres = 0.6;
 
 	std::vector<gs::PointCloud*> pointCloud;
 	// CPU
@@ -185,5 +185,21 @@ int main()
 	return 1;
 }
 ```
+
+## Results
+
+| parameter        			 | Value         |
+|:--------------------------:|:-------------:|
+| Number of images 	 		 | 16	    	 |
+| image width		 		 | 640      	 |
+| image height			 	 | 480     		 |
+| Ray marching steps  	 	 | 250     		 |
+| NCC threshold		 		 | 0.6			 |
+| local camera sampling size | 2			 |
+| sampling window size       | 9			 |
+| render time				 | ~6h			 |
+
+
+[Point Cloud](https://github.com/Gregjksmith/Stereo-Point-Cloud/blob/master/images/pointCloud.png?raw=true)
 
 [1] Goesele, Michael, Brian Curless, and Steven M. Seitz. "Multi-view stereo revisited." Computer Vision and Pattern Recognition, 2006 IEEE Computer Society Conference on. Vol. 2. IEEE, 2006.
