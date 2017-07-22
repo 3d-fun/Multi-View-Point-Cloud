@@ -158,9 +158,9 @@ void gs::StereoImage::computeGlobalCoord(cv::Mat& screenCoord, cv::Mat& globalPo
 
 bool gs::StereoImage::isClipped(cv::Mat& screenCoord)
 {
-	if (screenCoord.at<float>(0, 0) >= this->image.rows || screenCoord.at<float>(0, 0) < 0.0)
+	if (screenCoord.at<double>(0, 0) >= this->image.cols || screenCoord.at<double>(0, 0) < 0.0)
 		return true;
-	if (screenCoord.at<float>(1, 0) >= this->image.cols || screenCoord.at<float>(1, 0) < 0.0)
+	if (screenCoord.at<double>(1, 0) >= this->image.rows || screenCoord.at<double>(1, 0) < 0.0)
 		return true;
 	return false;
 }
@@ -267,6 +267,45 @@ float gs::normalizedCrossCorrelation(unsigned char* v0, unsigned char* v1, int n
 	if (den == 0.0)
 		return 0.0;
 	return num / (sqrt(den));
+}
+
+void gs::subtractMean(unsigned char* v0, float* result, int numSamples)
+{
+	float meanV0[] = { 0.0, 0.0, 0.0 };
+
+	for (int i = 0; i < numSamples; i++)
+	{
+		meanV0[0] += (float)v0[i * 3];
+		meanV0[1] += (float)v0[i * 3 + 1];
+		meanV0[2] += (float)v0[i * 3 + 2];
+	}
+	meanV0[0] = meanV0[0] / (float)numSamples;
+	meanV0[1] = meanV0[1] / (float)numSamples;
+	meanV0[2] = meanV0[2] / (float)numSamples;
+
+	for (int i = 0; i < numSamples; i++)
+	{
+		result[i * 3] = (float)v0[i * 3] - meanV0[0];
+		result[i * 3 + 1] = (float)v0[i * 3 + 1] - meanV0[1];
+		result[i * 3 + 2] = (float)v0[i * 3 + 2] - meanV0[2];
+	}
+}
+float gs::crossCorrelation(float* v0, float* v1, int numSamples)
+{
+	float num = 0.0;
+	float den1 = 0.0;
+	float den2 = 0.0;
+
+	for (int i = 0; i < numSamples*3; i++)
+	{
+		num += v0[i] * v1[i];
+		den1 += v0[i] * v0[i];
+		den2 += v1[i] * v1[i];
+	}
+	float den = den1*den2;
+	if (den == 0.0)
+		return 0.0;
+	return num / sqrt(den);
 }
 
 float gs::normalizedDistance(unsigned char* v0, unsigned char* v1, int numSamples)
@@ -401,7 +440,7 @@ void gs::computeBounds(cv::Mat& points, float* min, float* max)
 	max[1] = min[1];
 	max[2] = min[2];
 
-	for (int i = 0; i < points.cols; i++)
+	for (int i = 0; i < points.rows; i++)
 	{
 		min[0] = MIN(points.at<float>(i, 0), min[0]);
 		max[0] = MAX(points.at<float>(i, 0), max[0]);
@@ -495,6 +534,9 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 	unsigned char windowSample_i[M*M * 3];
 	unsigned char windowSample_j[M*M * 3];
 
+	float windowSampleFloat_i[M*M * 3];
+	float windowSampleFloat_j[M*M * 3];
+
 	float* validDepths = new float[rayMarchIterations];
 	float* depthCorr = new float[rayMarchIterations];
 	for (int i = 0; i < rayMarchIterations; i++)
@@ -528,6 +570,7 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 			{
 				// sample the reference image
 				si->sampleImage(y, x, M, windowSample_i);
+				subtractMean(windowSample_i, windowSampleFloat_i, M*M);
 				validDepthIndex = 0;
 				
 				// compute the sample sum
@@ -538,7 +581,7 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 				}
 
 				// threshold the samples, reject samples that are too dark.
-				if (sampleSum >= 6 * M*M)
+				if (sampleSum >= 20 * M*M)
 				{
 					for (int i = 0; i < rayMarchIterations; i++)
 					{
@@ -577,9 +620,11 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 
 									// sample the comparison image
 									sj->sampleImage(sampleY_j, sampleX_j, M, windowSample_j);
+									subtractMean(windowSample_j, windowSampleFloat_j, M*M);
 
 									// compute the normalized cross correlation.
-									float ncc = gs::normalizedCrossCorrelation(windowSample_i, windowSample_j, M*M);
+									//float ncc = gs::normalizedCrossCorrelation(windowSample_i, windowSample_j, M*M);
+									float ncc = gs::crossCorrelation(windowSampleFloat_i, windowSampleFloat_j, M*M);
 
 									if (ncc > nccThresh)
 									{
@@ -643,6 +688,7 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 				}
 			}
 		}
+
 	}
 
 	cv::Mat cloud(vertexList.size(), 3, CV_32F);
@@ -667,16 +713,18 @@ void gs::computePointCloud(std::vector<gs::StereoImage*>& images, float* globalR
 	float basisX[3];
 	float basisY[3];
 	float basisZ[3];
+	cv::Mat lPos(1, 3, CV_32F);
+	cv::Mat ind;
+	cv::Mat dist;
 	for (int i = 0; i < vertexList.size(); i++)
 	{
 		Vertex* v = vertexList[i];
 		Vertex* c = colorList[i];
 		float conditionNumber = localBasis(v->pos, &cloud, tree, basisX, basisY, basisZ, 40, modelCenter);
-		if (conditionNumber > MIN_CONDITION_NUMBER)
-		{
-			PointCloud* pc = new PointCloud(v->pos, basisY, c->pos);
-			pointCloud.push_back(pc);
-		}
+
+		PointCloud* pc = new PointCloud(v->pos, basisY, c->pos);
+		pointCloud.push_back(pc);
+		
 	}
 
 	vertexList.clear();
@@ -716,17 +764,11 @@ void gs::computePointCloudNormals(std::vector<PointCloud*> &pointCloud)
 	float basisZ[3];
 	for (int i = 0; i < pointCloud.size(); i++)
 	{
-		float conditionNumber = localBasis(pointCloud[i]->position, &cloud, tree, basisX, basisY, basisZ, 50, modelCenter);
-		if (conditionNumber >= MIN_CONDITION_NUMBER)
-		{
-			pointCloud[i]->normal[0] = basisY[0];
-			pointCloud[i]->normal[1] = basisY[1];
-			pointCloud[i]->normal[2] = basisY[2];
-		}
-		else
-		{
-			pointCloud.erase(pointCloud.begin() + i);
-		}
+		float conditionNumber = localBasis(pointCloud[i]->position, &cloud, tree, basisX, basisY, basisZ, 20, modelCenter);
+		pointCloud[i]->normal[0] = basisY[0];
+		pointCloud[i]->normal[1] = basisY[1];
+		pointCloud[i]->normal[2] = basisY[2];
+		
 	}
 }
 
@@ -734,6 +776,9 @@ void gs::exportPointCloud(std::vector<PointCloud*>& pointCloud, const char* file
 {
 	std::fstream file;
 	file.open(filePath, std::fstream::out | std::fstream::binary);
+
+	if (!file)
+		return;
 
 	int numPoints = pointCloud.size();
 	file.write((const char*)&numPoints, 4);
@@ -773,6 +818,43 @@ void gs::exportPointCloud(std::vector<PointCloud*>& pointCloud, const char* file
 
 		v = pc->color[2];
 		file.write((const char*)&v, 4);
+	}
+	file.close();
+}
+
+void gs::importPointCloud(std::vector<PointCloud*>& pointCloud, const char* filePath)
+{
+	std::fstream file;
+	file.open(filePath, std::fstream::in | std::fstream::binary);
+
+	if (!file)
+		return;
+
+	int numPoints;
+	file.read((char*)&numPoints, 4);
+
+	pointCloud.clear();
+
+	for (int i = 0; i < numPoints; i++)
+	{
+		float position[3];
+		float normal[3];
+		float color[3];
+
+		file.read((char*)&position[0], 4);
+		file.read((char*)&position[1], 4);
+		file.read((char*)&position[2], 4);
+
+		file.read((char*)&normal[0], 4);
+		file.read((char*)&normal[1], 4);
+		file.read((char*)&normal[2], 4);
+
+		file.read((char*)&color[0], 4);
+		file.read((char*)&color[1], 4);
+		file.read((char*)&color[2], 4);
+
+		PointCloud* pc = new PointCloud(position, normal, color);
+		pointCloud.push_back(pc);
 	}
 	file.close();
 }

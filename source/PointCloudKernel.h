@@ -22,7 +22,8 @@ minimum condition number: remove points in which the condition number of the cov
 #include "ClKernel.h"
 #include "PointCloud.h"
 
-#define POINT_CLOUD_KERNEL_SOURCE "PointCloud.cl"
+#define POINT_CLOUD_KERNEL_SOURCE "../kernels/PointCloud.cl"
+#define POINT_CLOUD_DEBUG 1
 
 /*
 class PointCloudKernel

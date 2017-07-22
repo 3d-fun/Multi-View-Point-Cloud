@@ -20,9 +20,9 @@ Hyperparameters:
 #include <opencv2\opencv.hpp>
 #include <fstream>
 
-#define SAMPLE_WINDOW_SIZE 3
-#define LOCAL_CAMERA_SIZE 4
-#define MIN_CONDITION_NUMBER 5.0
+#define SAMPLE_WINDOW_SIZE 9
+#define LOCAL_CAMERA_SIZE 2
+#define MIN_CONDITION_NUMBER 1.0
 
 namespace gs
 {
@@ -138,7 +138,9 @@ namespace gs
 	*/
 	float normalizedCrossCorrelation(unsigned char* v0, unsigned char* v1, int numSamples);
 	float normalizedDistance(unsigned char* v0, unsigned char* v1, int numSamples);
-	
+	void subtractMean(unsigned char* v0, float* result, int numSamples);
+	float crossCorrelation(float* v0, float* v1, int numSamples);
+
 	/*
 	cameraSubset
 	returns the [subsetSize] set of cameras closest to the reference camera.
@@ -197,4 +199,5 @@ namespace gs
 	float length(float* a);
 
 	void exportPointCloud(std::vector<PointCloud*>& pointCloud, const char* filePath);
+	void importPointCloud(std::vector<PointCloud*>& pointCloud, const char* filePath);
 }

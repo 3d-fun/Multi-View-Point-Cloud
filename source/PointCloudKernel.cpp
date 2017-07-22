@@ -222,9 +222,7 @@ void gs::PointCloudKernel::computePointCloud(std::vector<gs::PointCloud*> &point
 	cl_int depthIndex = 0;
 	cl_int imageReferenceIndex = 0;
 
-
 	int numImages = this->__stereoImages.size();
-
 	for (int imageReferenceIndex = 0; imageReferenceIndex < numImages; imageReferenceIndex++)
 	{
 		clearValidDepths();
@@ -236,10 +234,15 @@ void gs::PointCloudKernel::computePointCloud(std::vector<gs::PointCloud*> &point
 		{
 			addKernelArg(0, 8, sizeof(cl_int), (void*)&i);
 			enqueueKernel(0, __numThreads, 1);
+#if POINT_CLOUD_DEBUG
+			if (i % 20 == 0)
+				printf("Image Reference Index: %i / %i. ray march iteration: %i / %i \n", imageReferenceIndex, numImages - 1, i, __rayMarchIterations - 1);
+#endif
 		}
 
 		readValidDepths();
 		readNumValidDepths();
+		readDepthCorrelation();
 		gs::StereoImage* si = __stereoImages[imageReferenceIndex];
 		cv::Mat screenPos(4, 1, CV_64F);
 		cv::Mat globalPos(4, 1, CV_64F);
@@ -248,15 +251,39 @@ void gs::PointCloudKernel::computePointCloud(std::vector<gs::PointCloud*> &point
 		float position[3];
 		float color[3];
 
-		int imageIndex = 0;
+		int imageIndex;
+		float depthMean;
+
+
+		const int filterHalf = 8;
 		for (int x = 0; x < si->image.cols; x++)
 		{
 			for (int y = 0; y < si->image.rows; y++)
-			{
+			{		
+				imageIndex = y*si->image.cols + x;
 				int validDepths = __numValidDepthsHost[imageIndex];
 				if (validDepths > 0)
 				{
 					float dpc = __validDepthsHost[imageIndex];
+					depthMean = 0.0;
+					int numSamples = 0;
+					for (int dSampleX = -filterHalf; dSampleX <= filterHalf; dSampleX++)
+					{
+						for (int dSampleY = -filterHalf; dSampleY <= filterHalf; dSampleY++)
+						{
+							int depthSampleIndex = (y + dSampleY)*si->image.cols + (x + dSampleX);
+							if (depthSampleIndex >= 0 && depthSampleIndex < (si->image.cols*si->image.rows))
+							{
+								if (__numValidDepthsHost[depthSampleIndex] > 0)
+								{
+									depthMean += __validDepthsHost[depthSampleIndex];
+									numSamples++;
+								}
+							}
+						}
+					}
+					depthMean = depthMean / (float)numSamples;
+					dpc = depthMean;
 					float xpc = ((float)x)*dpc;
 					float ypc = ((float)y)*dpc;
 
@@ -264,7 +291,7 @@ void gs::PointCloudKernel::computePointCloud(std::vector<gs::PointCloud*> &point
 					screenPos.at<double>(1, 0) = (double)ypc;
 					screenPos.at<double>(2, 0) = (double)dpc;
 					screenPos.at<double>(3, 0) = 1.0;
-					globalPos = si->cameraMatrixInv*screenPos;
+					si->computeGlobalCoord(screenPos, globalPos);
 
 					position[0] = (float)globalPos.at<double>(0, 0);
 					position[1] = (float)globalPos.at<double>(1, 0);
@@ -272,14 +299,14 @@ void gs::PointCloudKernel::computePointCloud(std::vector<gs::PointCloud*> &point
 
 					cv::Vec3b imageSample;
 					imageSample = si->image.at<cv::Vec3b>(y, x);
-					color[0] = (float)imageSample[0] / 255.0;
+					color[0] = (float)imageSample[2] / 255.0;
 					color[1] = (float)imageSample[1] / 255.0;
-					color[2] = (float)imageSample[2] / 255.0;
+					color[2] = (float)imageSample[0] / 255.0;
 
-					gs::PointCloud* pc = new gs::PointCloud(position, normal, color );
+					gs::PointCloud* pc = new gs::PointCloud(position, normal, color);
 					pointCloud.push_back(pc);
 				}
-				imageIndex++;
+
 			}
 		}
 	}
@@ -329,7 +356,7 @@ void gs::PointCloudKernel::clearDepthCorrelation()
 {
 	for (int i = 0; i < __numValidDepthSize; i++)
 	{
-		__depthCorrelationHost[i] = 0;
+		__depthCorrelationHost[i] = -1.0;
 	}
 	clEnqueueReadBuffer(__context->commandQueue, __depthCorrelationClient, CL_TRUE, 0, __validDepthSize * sizeof(float), (void*)__depthCorrelationHost, 0, NULL, NULL);
 	clFinish(__context->commandQueue);
