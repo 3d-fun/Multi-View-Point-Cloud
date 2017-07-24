@@ -203,3 +203,6 @@ int main()
 ![Point Cloud](https://github.com/Gregjksmith/Stereo-Point-Cloud/blob/master/images/pointCloud.png?raw=true)
 
 [1] Goesele, Michael, Brian Curless, and Steven M. Seitz. "Multi-view stereo revisited." Computer Vision and Pattern Recognition, 2006 IEEE Computer Society Conference on. Vol. 2. IEEE, 2006.
+
+## License
+This project is licensed under the terms of the MIT license.
