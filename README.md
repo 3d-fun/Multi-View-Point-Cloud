@@ -1,9 +1,7 @@
-# Stereoscopic-Point-Cloud
-
-GPU and CPU implementation of Computing a point cloud from Stereoscopic images.
+# Multi-View Stereo Image Point Cloud
 
 ## Description
-Takes a set of stereo images and camera matricies and produces a 3D point cloud of the model.
+Takes a set of stereo images and camera matricies and produces a 3D point cloud of the object(s).
 A reference image is compared with a subset of nearby images. We perform ray marching and record depth values with similar pixel values between images.
 We use normalized cross correlation as our Photo-consistency measure. Points are recorded with a position, normal and color.
 
@@ -205,4 +203,5 @@ int main()
 [1] Goesele, Michael, Brian Curless, and Steven M. Seitz. "Multi-view stereo revisited." Computer Vision and Pattern Recognition, 2006 IEEE Computer Society Conference on. Vol. 2. IEEE, 2006.
 
 ## License
+
 This project is licensed under the terms of the MIT license.
